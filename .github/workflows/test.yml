@@ -42,17 +42,6 @@ jobs:
     outputs:
       configuration: ${{ steps.configure.outputs.configuration }}
 
-  macos:
-    uses: ./.github/workflows/test-single.yml
-    needs: configure
-    with:
-      emoji: 🍎
-      matrix: macos
-      name: macOS
-      file_name: macos
-      concurrency_name: macos
-      configuration: ${{ needs.configure.outputs.configuration }}
-      runs-on: macos-latest
   ubuntu:
     uses: ./.github/workflows/test-single.yml
     needs: configure
