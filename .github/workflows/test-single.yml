@@ -178,8 +178,7 @@ jobs:
           git clone https://gitlab.com/pbs3141/libfsyncblock.git
           cd libfsyncblock
           make && sudo make install
-          echo "/usr/lib/libfsyncblock.so
-" | sudo tee -a /etc/ld.so.preload
+          echo "/usr/lib/libfsyncblock.so" | sudo tee -a /etc/ld.so.preload
 
       - name: Test blockchain code with
         env:
