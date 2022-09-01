@@ -52,12 +52,6 @@ jobs:
             file_name: ${{ inputs.file_name }}
             runs-on: ${{ inputs.runs-on }}
         python:
-          - name: '3.7'
-            file_name: '3.7'
-            action: '3.7'
-            apt: '3.7'
-            install_sh: '3.7'
-            matrix: '3.7'
           - name: '3.8'
             file_name: '3.8'
             action: '3.8'
@@ -77,14 +71,6 @@ jobs:
             install_sh: '3.10'
             matrix: '3.10'
         exclude:
-          - os:
-              matrix: macos
-            python:
-              matrix: '3.7'
-          - os:
-              matrix: macos
-            python:
-              matrix: '3.8'
           - os:
               matrix: windows
             configuration:
@@ -187,15 +173,23 @@ jobs:
           sh install-timelord.sh -n
           ./vdf_bench square_asm 400000
 
-      - name: Test blockchain code with pytest
+      - name: Get libfsyncblock
+        run: |
+          git clone https://gitlab.com/pbs3141/libfsyncblock.git
+          cd libfsyncblock
+          make && sudo make install
+          echo "/usr/lib/libfsyncblock.so
+" | sudo tee -a /etc/ld.so.preload
+
+      - name: Test blockchain code with
         env:
           ENABLE_PYTEST_MONITOR: ${{ matrix.os.matrix == 'ubuntu' && matrix.configuration.enable_pytest_monitor || '' }}
         run: |
-          coverage run --rcfile=.coveragerc --module pytest --durations=10 ${{ matrix.configuration.pytest_parallel_args[matrix.os.matrix] }} -m "not benchmark" ${{ env.ENABLE_PYTEST_MONITOR }} ${{ matrix.configuration.test_files }}
+          LD_PRELOAD=/usr/lib/libfsyncblock.so coverage run --rcfile=.coveragerc --module pytest --durations=10 ${{ matrix.configuration.pytest_parallel_args[matrix.os.matrix] }} -m "not benchmark" ${{ env.ENABLE_PYTEST_MONITOR }} ${{ matrix.configuration.test_files }}
 
       - name: Process coverage data
         run: |
-          coverage combine --rcfile=.coveragerc
+          LD_PRELOAD=/usr/lib/libfsyncblock.so coverage combine --rcfile=.coveragerc
           coverage xml --rcfile=.coveragerc -o coverage.xml
           mkdir coverage_reports
           cp .coverage "coverage_reports/.coverage.${{ env.JOB_FILE_NAME }}"
@@ -212,5 +206,5 @@ jobs:
       - name: Check resource usage
         if: matrix.os.matrix == 'ubuntu' && matrix.configuration.check_resource_usage
         run: |
-          sqlite3 -readonly -separator " " .pymon "select item,cpu_usage,total_time,mem_usage from TEST_METRICS order by mem_usage desc;" >metrics.out
+          LD_PRELOAD=/usr/lib/libfsyncblock.so sqlite3 -readonly -separator " " .pymon "select item,cpu_usage,total_time,mem_usage from TEST_METRICS order by mem_usage desc;" >metrics.out
           ./tests/check_pytest_monitor_output.py <metrics.out
